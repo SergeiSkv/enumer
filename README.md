@@ -1,10 +1,10 @@
-# Enumer [![GoDoc](https://godoc.org/github.com/dmarkham/enumer?status.svg)](https://godoc.org/github.com/dmarkham/enumer) [![Go Report Card](https://goreportcard.com/badge/github.com/dmarkham/enumer)](https://goreportcard.com/report/github.com/dmarkham/enumer) [![GitHub Release](https://img.shields.io/github/release/dmarkham/enumer.svg)](https://github.com/dmarkham/enumer/releases)[![Build Status](https://travis-ci.com/dmarkham/enumer.svg?branch=master)](https://travis-ci.com/dmarkham/enumer)
+# Enumer [![GoDoc](https://godoc.org/github.com/SergeiSkv/enumer?status.svg)](https://godoc.org/github.com/SergeiSkv/enumer) [![Go Report Card](https://goreportcard.com/badge/github.com/SergeiSkv/enumer)](https://goreportcard.com/report/github.com/SergeiSkv/enumer) [![GitHub Release](https://img.shields.io/github/release/dmarkham/enumer.svg)](https://github.com/SergeiSkv/enumer/releases)[![Build Status](https://travis-ci.com/dmarkham/enumer.svg?branch=master)](https://travis-ci.com/dmarkham/enumer)
 
 
 Enumer is a tool to generate Go code that adds useful methods to Go enums (constants with a specific type).
 It started as a fork of [Rob Pike’s Stringer tool](https://godoc.org/golang.org/x/tools/cmd/stringer)
 maintained by [Álvaro López Espinosa](https://github.com/alvaroloes/enumer). 
-This was again forked here as (https://github.com/dmarkham/enumer) picking up where Álvaro left off.
+This was again forked here as (https://github.com/SergeiSkv/enumer) picking up where Álvaro left off.
 
 
 ```
@@ -14,7 +14,7 @@ Usage of ./enumer:
         Enumer [flags] -type T [directory]
         Enumer [flags] -type T files... # Must be a single package
 For more information, see:
-        http://godoc.org/github.com/dmarkham/enumer
+        http://godoc.org/github.com/SergeiSkv/enumer
 Flags:
   -addprefix string
         transform each item name by adding a prefix. Default: ""
@@ -198,7 +198,7 @@ name := MyTypeValue.String() // name => "my_type_value"
 For a module-aware repo with `enumer` in the `go.mod` file, generation can be called by adding the following to a `.go` source file:
 
 ```golang
-//go:generate go run github.com/dmarkham/enumer -type=YOURTYPE
+//go:generate go run github.com/SergeiSkv/enumer -type=YOURTYPE
 ```
 
 There are four boolean flags: `json`, `text`, `yaml` and `sql`. You can use any combination of them (i.e. `enumer -type=Pill -json -text`),

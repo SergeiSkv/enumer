@@ -1,4 +1,4 @@
-module github.com/dmarkham/enumer
+module github.com/SergeiSkv/enumer
 
 require (
 	github.com/pascaldekloe/name v1.0.0
@@ -10,4 +10,4 @@ require (
 	golang.org/x/sys v0.5.0 // indirect
 )
 
-go 1.17
+go 1.20
