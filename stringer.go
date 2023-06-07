@@ -18,7 +18,6 @@ import (
 	"go/importer"
 	"go/token"
 	"go/types"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -31,6 +30,8 @@ import (
 
 	"github.com/pascaldekloe/name"
 )
+
+var appVersion string
 
 type arrayFlags []string
 
@@ -45,17 +46,18 @@ func (af *arrayFlags) Set(value string) error {
 
 var (
 	typeNames       = flag.String("type", "", "comma-separated list of type names; must be set")
-	sql             = flag.Bool("sql", false, "if true, the Scanner and Valuer interface will be implemented.")
-	json            = flag.Bool("json", false, "if true, json marshaling methods will be generated. Default: false")
+	sql             = flag.Bool("sql", true, "if true, the Scanner and Valuer interface will be implemented.Default: true")
+	json            = flag.Bool("json", true, "if true, json marshaling methods will be generated. Default: true")
 	yaml            = flag.Bool("yaml", false, "if true, yaml marshaling methods will be generated. Default: false")
 	text            = flag.Bool("text", false, "if true, text marshaling methods will be generated. Default: false")
 	gqlgen          = flag.Bool("gqlgen", false, "if true, GraphQL marshaling methods for gqlgen will be generated. Default: false")
 	altValuesFunc   = flag.Bool("values", false, "if true, alternative string values method will be generated. Default: false")
 	output          = flag.String("output", "", "output file name; default srcdir/<type>_string.go")
-	transformMethod = flag.String("transform", "noop", "enum item name transformation method. Default: noop")
+	transformMethod = flag.String("transform", "snake", "enum item name transformation method. Default: snake")
 	trimPrefix      = flag.String("trimprefix", "", "transform each item name by removing a prefix. Default: \"\"")
 	addPrefix       = flag.String("addprefix", "", "transform each item name by adding a prefix. Default: \"\"")
 	linecomment     = flag.Bool("linecomment", false, "use line comment text as printed text when present")
+	version         = flag.String("version", "", "print version and exit")
 )
 
 var comments arrayFlags
@@ -108,6 +110,11 @@ func main() {
 		// g.parsePackageFiles(args)
 	}
 
+	if *version != "" {
+		fmt.Println(appVersion)
+		os.Exit(0)
+	}
+
 	g.parsePackage(args, []string{})
 
 	// Print the header and package clause.
@@ -144,22 +151,28 @@ func main() {
 	// Figure out filename to write to
 	outputName := *output
 	if outputName == "" {
-		baseName := fmt.Sprintf("%s_enumer.go", typs[0])
-		outputName = filepath.Join(dir, strings.ToLower(baseName))
+		baseName := fmt.Sprintf("%s_enumer.go", name.Delimit(typs[0], '_'))
+		outputName = filepath.Join(dir, baseName)
 	}
 
 	// Write to tmpfile first
-	tmpFile, err := ioutil.TempFile(dir, fmt.Sprintf("%s_enumer_", typs[0]))
+	tmpFile, err := os.CreateTemp(dir, fmt.Sprintf("%s_enumer_", typs[0]))
 	if err != nil {
 		log.Fatalf("creating temporary file for output: %s", err)
 	}
 	_, err = tmpFile.Write(src)
 	if err != nil {
-		tmpFile.Close()
-		os.Remove(tmpFile.Name())
+		if err = tmpFile.Close(); err != nil {
+			log.Printf("closing tempfile: %s", err)
+		}
+		if err := os.Remove(tmpFile.Name()); err != nil {
+			log.Fatalf("removing tempfile: %s", err)
+		}
 		log.Fatalf("writing output: %s", err)
 	}
-	tmpFile.Close()
+	if err = tmpFile.Close(); err != nil {
+		log.Printf("closing tempfile: %s", err)
+	}
 
 	// Rename tmpfile to output file
 	err = os.Rename(tmpFile.Name(), outputName)
@@ -245,7 +258,7 @@ type Package struct {
 
 // parsePackage analyzes the single package constructed from the patterns and tags.
 // parsePackage exits if there is an error.
-func (g *Generator) parsePackage(patterns []string, tags []string) {
+func (g *Generator) parsePackage(patterns []string, _ []string) {
 	cfg := &packages.Config{
 		Mode: packages.LoadSyntax,
 		// TODO: Need to think about constants in test files. Maybe write type_string_test.go
@@ -353,11 +366,11 @@ func (g *Generator) transformValueNames(values []Value, transformMethod string) 
 		}
 	case "title":
 		fn = func(s string) string {
-			return strings.Title(s)
+			return strings.ToTitle(s)
 		}
 	case "title-lower":
 		fn = func(s string) string {
-			title := []rune(strings.Title(s))
+			title := []rune(strings.ToTitle(s))
 			title[0] = unicode.ToLower(title[0])
 			return string(title)
 		}
@@ -774,9 +787,10 @@ func (g *Generator) buildOneRun(runs [][]Value, typeName string) {
 }
 
 // Arguments to format are:
-// 	[1]: type name
-// 	[2]: size of index element (8 for uint8 etc.)
-// 	[3]: less than zero check (for signed types)
+//
+//	[1]: type name
+//	[2]: size of index element (8 for uint8 etc.)
+//	[3]: less than zero check (for signed types)
 const stringOneRun = `func (i %[1]s) String() string {
 	if %[3]si >= %[1]s(len(_%[1]sIndex)-1) {
 		return fmt.Sprintf("%[1]s(%%d)", i)
@@ -786,10 +800,11 @@ const stringOneRun = `func (i %[1]s) String() string {
 `
 
 // Arguments to format are:
-// 	[1]: type name
-// 	[2]: lowest defined value for type, as a string
-// 	[3]: size of index element (8 for uint8 etc.)
-// 	[4]: less than zero check (for signed types)
+//
+//	[1]: type name
+//	[2]: lowest defined value for type, as a string
+//	[3]: size of index element (8 for uint8 etc.)
+//	[4]: less than zero check (for signed types)
 const stringOneRunWithOffset = `func (i %[1]s) String() string {
 	i -= %[2]s
 	if %[4]si >= %[1]s(len(_%[1]sIndex)-1) {
